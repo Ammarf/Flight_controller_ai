@@ -92,6 +92,10 @@ def map(x):
     if result > 8000: return 8000
     else: return result
 
+def rc_map(x,in_min,in_max,out_min,out_max):
+    result = (x - in_min)*(out_max - out_min) / (in_max - in_min + out_max
+    return result
+
 
 
 def get():
