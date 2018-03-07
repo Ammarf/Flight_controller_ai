@@ -93,7 +93,7 @@ def map(x):
     else: return result
 
 def rc_map(x,in_min,in_max,out_min,out_max):
-    result = (x - in_min)*(out_max - out_min) / (in_max - in_min + out_max
+    result = (x - in_min)*(out_max - out_min) / (in_max - in_min) + out_max
     return result
 
 
@@ -126,10 +126,36 @@ def test():
           print("%f %f %f" % (x,y,z))
           data = imu.getIMUData()
           fusionPose = data["fusionPose"]
-          now = time.time()
-          print("r: %f p: %f y: %f" % (math.degrees(fusionPose[0]), 
-          math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
-          print("It has been {0} seconds since the loop started".format(now - program_starts))
+          des_angle = get()
+          des_pitch = rc_map(des_angle[0],-1,1,-45,45)
+          des_roll = rc_map(des_angle[1],-1,1,-45,45)
+          des_yaw = rc_map(des_angle[2],-1,1,-45,45)
+          des_throttle = rc_map(des_angle[3],-1,1,4000,8000)
+          roll = math.degrees(fusionPose[0])
+          pitch = math.degrees(fusionPose[1])
+          yaw = math.degrees(fusionPose[2])
+          pid_pitch_stab_stab.SetPoint=des_pitch
+          pid_roll_stab_stab_stab.SetPoint=des_roll
+          feedback_pitch = pitch
+          feedback_roll = roll
+          pid_pitch_stab_stab.update(feedback_pitch)
+          if des_throttle > 1200:
+              pitch_stab_out = max(min(pid_pitch_stab_stab.output, 250),  -250)
+              roll_stab_out = max(min(pid_roll_stab_stab_stab.output, 250),  -250)
+              if des_yaw > 5:
+                  yaw_stab_ouput = des_yaw
+                  yaw_target = yaw
+              pid_gyro_pitch.Setpoint = pitch_stab_out
+              pid_gyro_roll.SetPoint = roll_stab_out
+              feedback_gyro_pitch = gyro_pitch
+              feedback_gyro_roll = gyro_roll
+              pid_gyro_pitch.update(feedback_gyro_pitch)
+              pid_gyro_roll.update(feedback_gyro_roll)
+              pitch_out = max(min(pid_gyro_pitch.output, 500), -500)
+              roll_out = max(min(pid_gyro_roll.output,500), -500)
+          print("r: %f p: %f y: %f" % (roll, pitch 
+          , yaw ))
+          #print("It has been {0} seconds since the loop started".format(now - program_starts))
           time.sleep(poll_interval*1.0/1000.0)
           servo.setTarget(SERVO_3, get())
           servo.setTarget(SERVO_0, get())
