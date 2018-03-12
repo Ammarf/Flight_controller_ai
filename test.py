@@ -34,14 +34,14 @@ servo = maestro.Controller()
 #servo.setSpeed(0, 0)
 
 
-pid_pitch_stab = PID.PID(4.5, 0, 0)
-pid_roll_stab = PID.PID(4.5, 0, 0)
+pid_pitch_stab = PID.PID(0.1, 0, 0)
+pid_roll_stab = PID.PID(0.1, 0, 0)
 pid_yaw_stab = PID.PID(10, 0, 0)
 
 
-pid_pitch_rate = PID.PID(6, 0, 0)
-pid_roll_rate = PID.PID(6, 0, 0)
-pid_yaw_rate = PID.PID(6, 0, 0)
+pid_pitch_rate = PID.PID(0.1, 0, 0)
+pid_roll_rate = PID.PID(0.1, 0, 0)
+pid_yaw_rate = PID.PID(1, 0, 0)
 
 
 poll_interval = imu.IMUGetPollInterval()
@@ -72,7 +72,7 @@ MOTOR_BR = 3
 servo.setTarget(MOTOR_BR, 4000)
 servo.setTarget(MOTOR_FR, 4000)
 servo.setTarget(MOTOR_FL, 4000)
-servo.setTarget(MOTOR_FR, 4000)
+servo.setTarget(MOTOR_BL, 4000)
 
 time.sleep(1)
 
@@ -103,7 +103,7 @@ def rc_map(x,in_min,in_max,out_min,out_max):
 def get():
     #Read input from the two joysticks
     pygame.event.pump()
-    throttle = map(j.get_axis(2))
+    throttle = j.get_axis(2)
     roll = j.get_axis(4)
     pitch = j.get_axis(3)
     yaw = j.get_axis(5)
@@ -136,8 +136,8 @@ def test():
           des_pitch = rc_map(des_attitude[1],1,-1,-45,45)
           des_roll = rc_map(des_attitude[2],-1,1,-45,45)
           des_yaw = rc_map(des_attitude[3],-1,1,-45,45)
-	  print(des_pitch)
-          des_throttle = rc_map(des_attitude[3],-1,1,4000,8000)
+	  #print(des_pitch)
+          des_throttle = map(des_attitude[0])
           roll = math.degrees(fusionPose[0])
           pitch = math.degrees(fusionPose[1])
           yaw = math.degrees(fusionPose[2])
@@ -150,7 +150,7 @@ def test():
           pid_pitch_stab.update(feedback_stab_pitch)
           pid_roll_stab.update(feedback_stab_roll)
           pid_yaw_stab.update(feedback_stab_yaw)
-          if des_throttle > 1200:
+          if des_throttle > 5000:
               pitch_stab_out = max(min(pid_pitch_stab.output, 250),  -250)
               roll_stab_out = max(min(pid_roll_stab.output, 250),  -250)
               yaw_stab_out = max(min(pid_yaw_stab.output, 360),  -360)
@@ -170,20 +170,22 @@ def test():
               yaw_out =  max(min(pid_yaw_rate.output, -500), 500)
               #print("r: %f p: %f y: %f" % (roll, pitch, yaw ))
               #print("It has been {0} seconds since the loop started".format(now - program_starts))
-              
-              #servo.setTarget(MOTOR_FL, des_throttle + roll_out + pitch_out - yaw_out)
-              #servo.setTarget(MOTOR_BL, des_throttle + roll_out - pitch_out + yaw_out)
-              #servo.setTarget(MOTOR_FR, des_throttle - roll_out + pitch_out + yaw_out)
-              #servo.setTarget(MOTOR_BR, des_throttle - roll_out - pitch_out - yaw_out)
+              print(int(roll_out))
+              servo.setTarget(MOTOR_FL, int(des_throttle - roll_out - pitch_out - yaw_out))
+              servo.setTarget(MOTOR_BL, int(des_throttle - roll_out + pitch_out + yaw_out))
+              servo.setTarget(MOTOR_FR, int(des_throttle + roll_out - pitch_out + yaw_out))
+              servo.setTarget(MOTOR_BR, int(des_throttle + roll_out + pitch_out - yaw_out))
+              time.sleep(poll_interval*1.0/1000.0)
           else:
-              #servo.setTarget(MOTOR_FL, 4000)
-              #servo.setTarget(MOTOR_BL, 4000)
-              #servo.setTarget(MOTOR_FR, 4000)
-              #servo.setTarget(MOTOR_BR, 4000)
+              #print(int(roll_out))
+              servo.setTarget(MOTOR_FL, 4000)
+              servo.setTarget(MOTOR_BL, 4000)
+              servo.setTarget(MOTOR_FR, 4000)
+              servo.setTarget(MOTOR_BR, 4000)
               yaw_target = yaw
-              pid_pitch_rate.setKI(0)
-              pid_roll_rate.setKI(0)
-              pid_yaw_rate.setKI(0)
+              pid_pitch_rate.setKi(0)
+              pid_roll_rate.setKi(0)
+              pid_yaw_rate.setKi(0)
               time.sleep(poll_interval*1.0/1000.0)
           
           #print("Throttle: {}".format(get()))
